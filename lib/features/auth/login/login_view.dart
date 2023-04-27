@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:workshop_example/core/network_manager/network_manager.dart';
+import 'package:workshop_example/features/auth/register/register_view.dart';
 
 import '../../../product/api_endpoints/api_endpoints.dart';
 import '../../../product/widgets/custom_text_form_field/custom_text_form_field.dart';
@@ -12,6 +13,8 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final NetworkManager networkManager = NetworkManager();
   bool isLoading = false;
   late TextEditingController emailController;
   late TextEditingController passwordController;
@@ -32,7 +35,6 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      endDrawer: const Drawer(),
       appBar: AppBar(
         centerTitle: true,
         title: const Text("Giriş Yap"),
@@ -56,12 +58,35 @@ class _LoginViewState extends State<LoginView> {
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       )),
-                  Column(
-                    children: [
-                      CustomTextFormField(title: "E-posta", obscureText: false, controller: emailController),
-                      const SizedBox(height: 8),
-                      CustomTextFormField(title: "Şifre", obscureText: true, controller: passwordController),
-                    ],
+                  Form(
+                    key: formKey,
+                    child: Column(
+                      children: [
+                        CustomTextFormField(
+                          title: "E-posta",
+                          obscureText: false,
+                          controller: emailController,
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return "Lütfen e-posta adresinizi giriniz";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        CustomTextFormField(
+                          title: "Şifre",
+                          obscureText: true,
+                          controller: passwordController,
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return "Lütfen şifrenizi giriniz";
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -69,7 +94,12 @@ class _LoginViewState extends State<LoginView> {
                       fixedSize: const Size(double.maxFinite, 50),
                     ),
                     onPressed: () async {
-                      await login(email: emailController.text, password: passwordController.text);
+                      if (formKey.currentState!.validate()) {
+                        await login(
+                          email: emailController.text,
+                          password: passwordController.text,
+                        );
+                      }
                     },
                     child: const Text("Giriş Yap"),
                   ),
@@ -81,7 +111,9 @@ class _LoginViewState extends State<LoginView> {
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.blueGrey.shade900,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RegisterView()));
+                        },
                         child: const Text("Kayıt Ol", style: TextStyle(decoration: TextDecoration.underline)),
                       )
                     ],
@@ -101,8 +133,7 @@ class _LoginViewState extends State<LoginView> {
     setState(() {
       isLoading = true;
     });
-    final response =
-        await NetworkManagerImpl.instance.post(ApiEndpoints.login, data: {"email": email, "password": password});
+    final response = await networkManager.post(ApiEndpoints.login, data: {"email": email, "password": password});
     setState(() {
       isLoading = false;
     });
